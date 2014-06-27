@@ -1,5 +1,5 @@
 ## MI100 Firmware
-This software written in an Arduino sketch. It runs on an ATTiny1634 based simple two motors robot MI100.
+This software is written in an Arduino sketch. It runs on an ATTiny1634 based simple two motors robot MI100.
 
 ## Motivation
 MI100 is a simple wireless robot. It has a PIEZO, a full color LED, light sensor (optional) and two motors. 
