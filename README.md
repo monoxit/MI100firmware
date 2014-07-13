@@ -5,16 +5,19 @@ This software is written in an Arduino sketch. It runs on an ATTiny1634 based si
 MI100 is a simple wireless robot. It has a PIEZO, a full color LED, light sensor (optional) and two motors. 
 MI100 is designed for helping children to enjoy studying programming language running on a laptop, Raspberry pi et cetra.
 
-## Installation
+## Installation with Arduino IDE 1.5.7 (or later possibly)
+Please refer to https://github.com/monoxit/monoxit-hardspec
+
+
+## Installation with Arduino IDE 1.0.5
 
 ### Prerequisite:
-
 * Arduino IDE 1.0.5 with the below environment
 * Tiny core library from https://github.com/rambo/arduino-tiny/tree/attiny1634 in sketch book folder
 * AVR_8_bit_GNU_Toolchain_3.4.3_1072 in arduino hardware>tools>avr folder
 * An AVR writer
 
-boards.txt section for ATTiny1634 on MI100
+#### boards.txt section for ATTiny1634 on MI100
 
 ```
 ##########################################################################
@@ -44,7 +47,7 @@ attiny1634at8bod2d7.build.f_cpu=8000000L
 attiny1634at8bod2d7.build.core=tiny
 ```
 
-ATTiny1634 section in avrdude.conf in arduino hardware>tools>etc
+#### ATTiny1634 section in avrdude.conf in arduino hardware>tools>etc
 
 ```
 #------------------------------------------------------------ 
