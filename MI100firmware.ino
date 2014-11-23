@@ -62,6 +62,7 @@ unsigned long spwmToggleTime=0, spwmStartTime=0, spwmCurrentTime;
 byte spwmCycleState=1, spwmDuty, spwmPin;
 
 byte lastRedDuty=50, lastGreenDuty=50, lastBlueDuty=50;
+byte redValue=0, greenValue=0, blueValue=0;
 
 void setup(){
   Serial.begin(9600);
@@ -73,18 +74,18 @@ void setup(){
   pinMode(M_BIN2, OUTPUT);
   pinMode(M_STBY, OUTPUT);
   digitalWrite(M_STBY, HIGH);
-  
+
   battery = ((float)analogRead(VCAP) / 1024) * vRef;
   light = analogRead(PHOTO);
   lastAnalogUpdate = millis();
-  
+
   spwmPin = LED_B;
-  
+
   tone(PIEZO, 220, 100);
   delay(500);
   tone(PIEZO, 880,100);
   delay(200);
-  
+
   blinkRgbLed(0,30,0,0,100,0); // G:0
   delay(200);
   blinkRgbLed(30,0,0,0,100,0); // R:1
@@ -92,28 +93,28 @@ void setup(){
   blinkRgbLed(30,0,0,0,100,0); // R:1
   delay(200);
   blinkRgbLed(0,30,0,0,100,0); // G:0
-  
+
   //Motor test
   analogWrite(M_PWMA, 1023);
   analogWrite(M_PWMB, 1023);
   digitalWrite(M_AIN2, LOW);
-  digitalWrite(M_BIN1, LOW);     
+  digitalWrite(M_BIN1, LOW);
   digitalWrite(M_AIN1, HIGH);
   digitalWrite(M_BIN2, HIGH);
   delay(10);
-  stopMotors();  
+  stopMotors();
   delay(100);
-  
+
   analogWrite(M_PWMA, 1023);
   analogWrite(M_PWMB, 1023);
   digitalWrite(M_AIN1, LOW);
-  digitalWrite(M_BIN2, LOW);      
+  digitalWrite(M_BIN2, LOW);
   digitalWrite(M_AIN2, HIGH);
   digitalWrite(M_BIN1, HIGH);
   delay(10);
-  stopMotors(); 
-  
-  
+  stopMotors();
+
+
 }
 
 void loop(){
@@ -124,7 +125,7 @@ void loop(){
   unsigned int args[maxCommandArgc];
   byte i;
   int  duration;
-  
+
   analogUpdate();
 
   if(battery < 1500){
@@ -140,14 +141,14 @@ void loop(){
       //Rev 4
       digitalWrite(LED_B, LOW);
       delay(100);
-      digitalWrite(LED_B,HIGH);      
+      digitalWrite(LED_B,HIGH);
       delay(900);
     }
     return;
   }
-  
+
   if(!serialReadln(buf, sizeof(buf), readTimeout)) return;
-  
+
   // Command Line Analysis
   cmd = buf[0];
   tempStr = strtok(buf, ",");
@@ -160,14 +161,15 @@ void loop(){
     case 'M':
       res = freeRam();
       break;
+
     case 'H':
       res = battery;
       break;
-    
+
     case 'P':
       res = light;
       break;
-      
+
     case 'L':
       // Left Pivot
       // L,duration(ms)
@@ -181,8 +183,8 @@ void loop(){
       digitalWrite(M_BIN1, HIGH);
       delay(duration);
       stopMotors();
-      break;      
- 
+      break;
+
      case 'R':
       // Right Pivot
       // R,duration(ms)
@@ -197,7 +199,7 @@ void loop(){
       delay(duration);
       stopMotors();
       break;
-   
+
     case 'A':
       // Turn Left
       // A,duration(ms)
@@ -211,8 +213,8 @@ void loop(){
       digitalWrite(M_BIN1, LOW);
       delay(duration);
       stopMotors();
-      break;  
-    
+      break;
+
     case 'U':
       // Turn Right
       // U,duration(ms)
@@ -226,8 +228,8 @@ void loop(){
       digitalWrite(M_BIN2, HIGH);
       delay(duration);
       stopMotors();
-      break; 
-      
+      break;
+
     case 'F':
       // Move Forward
       // F,duration(ms)
@@ -236,30 +238,30 @@ void loop(){
       analogWrite(M_PWMA, motorSpeed);
       analogWrite(M_PWMB, motorSpeed);
       digitalWrite(M_AIN2, LOW);
-      digitalWrite(M_BIN1, LOW);     
+      digitalWrite(M_BIN1, LOW);
       digitalWrite(M_AIN1, HIGH);
       digitalWrite(M_BIN2, HIGH);
       delay(duration);
       stopMotors();
       break;
-      
+
     case 'B':
       duration = args[0] > maxMoveDuration ? maxMoveDuration : args[0];
       analogWrite(M_PWMA, motorSpeed);
       analogWrite(M_PWMB, motorSpeed);
       digitalWrite(M_AIN1, LOW);
-      digitalWrite(M_BIN2, LOW);      
+      digitalWrite(M_BIN2, LOW);
       digitalWrite(M_AIN2, HIGH);
       digitalWrite(M_BIN1, HIGH);
       delay(duration);
       stopMotors();
       break;
-      
+
     case 'S':
       // STOP mortors
       stopMotors();
       break;
-      
+
     case 'D':
       // blink full color LED.
       // D,red_duty(%),green_duty(%),blue_duty(%),duration(ms)
@@ -270,7 +272,7 @@ void loop(){
       duration = args[3] > maxTalkDuration ? maxTalkDuration : args[3];
       blinkRgbLed(lastRedDuty, lastGreenDuty, lastBlueDuty, (duration * preFadeRatio) / 10, (duration * flatRatio) / 10, (duration * postFadeRatio) / 10);
       break;
-    
+
     case 'T':
       // Beep PIEZO
       // T,tone(Hz),duration(ms)
@@ -279,10 +281,21 @@ void loop(){
       noTone(PIEZO);
       tone(PIEZO, args[0], duration);
       break;
+
     case 'W':
       // W,PWM value (< 1023)
       // W,500<CR|LF>
       motorSpeed = args[0] > 1023 ? 1023 : args[0];
+      break;
+
+    case 'V':
+      // turn on/off RGB LED.
+      // V,red_value,green_value,blue_value (0;OFF, 0< value <=100;ON)
+      // V,100,0,100<CR|LF>
+      redValue = args[0] >= 100 ? 100 : args[0];
+      greenValue = args[1] >= 100 ? 100 : args[1];
+      blueValue = args[2] >= 100 ? 100 : args[2];
+      turnRgbLed(redValue, greenValue, blueValue);
       break;
   }
   lastSerialRecieved = millis();
@@ -319,13 +332,13 @@ void blinkRgbLed(byte redDuty, byte greenDuty, byte blueDuty, unsigned short pre
   byte reversedBlueDuty;
   unsigned short reversedRedDuty, reversedGreenDuty;
   float redPerMilliSec, greenPerMilliSec, bluePerMilliSec;
-  
+
   noTone(PIEZO);
 
   if(redDuty > (byte)100)  redDuty = 100;
   if(greenDuty > (byte)100)  greenDuty = 100;
   if(blueDuty > (byte)100)  blueDuty = 100;
-  
+
   reversedRedDuty = (analogMax * (100 - (unsigned long)redDuty)) / 100;
   reversedGreenDuty = (analogMax * (100 - (unsigned long)greenDuty)) / 100;
   reversedBlueDuty = 100 - blueDuty;
@@ -333,7 +346,7 @@ void blinkRgbLed(byte redDuty, byte greenDuty, byte blueDuty, unsigned short pre
   redPerMilliSec = ((float)analogMax - (float)reversedRedDuty) / (float)preFadeTime;
   greenPerMilliSec = ((float)analogMax - (float)reversedGreenDuty) / (float)preFadeTime;
   bluePerMilliSec = (float)blueDuty / (float)preFadeTime;
- 
+
   startTime = millis();
   spwmToggleTime = startTime;
   endTime = startTime + preFadeTime;
@@ -344,7 +357,7 @@ void blinkRgbLed(byte redDuty, byte greenDuty, byte blueDuty, unsigned short pre
     spwmDuty = ((preFadeTime - delta) * bluePerMilliSec) + reversedBlueDuty;
     spwmUpdate();
   }
-    
+
   startTime = millis();
   endTime = startTime + flatTime;
   analogWrite(LED_R, reversedRedDuty);
@@ -367,7 +380,7 @@ void blinkRgbLed(byte redDuty, byte greenDuty, byte blueDuty, unsigned short pre
     spwmDuty = (delta * bluePerMilliSec) + reversedBlueDuty;
     spwmUpdate();
   }
-  
+
   digitalWrite(LED_R,HIGH);
   digitalWrite(LED_G,HIGH);
   digitalWrite(LED_B,HIGH);
@@ -392,13 +405,13 @@ void spwmUpdate(){
 void analogUpdate(){
   short vData, v;
   short lightData;
-  
+
   if(millis() < lastAnalogUpdate + analogUpdateRate) return;
-  
+
   vData = analogRead(VCAP);
   v = ((float)vData / 1024) * vRef;
   battery = (battery * (factorN - 1) + v) / factorN;
-  
+
   lightData = analogRead(PHOTO);
   light = (light * (factorN - 1) + lightData) / factorN;
   lastAnalogUpdate = millis();
@@ -407,9 +420,21 @@ void analogUpdate(){
 //
 //Original Idea from https://learn.adafruit.com/memories-of-an-arduino/measuring-free-memory
 //
-int freeRam () 
+int freeRam ()
 {
-  extern int __heap_start, *__brkval; 
-  int v; 
-  return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval); 
+  extern int __heap_start, *__brkval;
+  int v;
+  return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval);
+}
+
+void turnRgbLed(byte redValue, byte greenValue, byte blueValue){
+  byte digitalRedValue, digitalGreenValue, digitalBlueValue;
+
+  digitalRedValue = redValue > 0 ? LOW : HIGH;
+  digitalGreenValue = greenValue > 0 ? LOW : HIGH;
+  digitalBlueValue = blueValue > 0 ? LOW : HIGH;
+
+  digitalWrite(LED_R, digitalRedValue);
+  digitalWrite(LED_G, digitalGreenValue);
+  digitalWrite(LED_B, digitalBlueValue);
 }
