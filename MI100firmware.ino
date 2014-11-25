@@ -381,9 +381,7 @@ void blinkRgbLed(byte redDuty, byte greenDuty, byte blueDuty, unsigned short pre
     spwmUpdate();
   }
 
-  digitalWrite(LED_R,HIGH);
-  digitalWrite(LED_G,HIGH);
-  digitalWrite(LED_B,HIGH);
+  turnRgbLed(redValue,greenValue,blueValue);
 }
 
 void spwmUpdate(){
