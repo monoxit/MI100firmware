@@ -139,9 +139,11 @@ void loop(){
       stopMotors();
       noTone(PIEZO);
       //Rev 4
+      digitalWrite(LED_R, HIGH);
+      digitalWrite(LED_G, HIGH);
       digitalWrite(LED_B, LOW);
       delay(100);
-      digitalWrite(LED_B,HIGH);
+      turnRgbLed(redValue,greenValue,blueValue);
       delay(900);
     }
     return;
