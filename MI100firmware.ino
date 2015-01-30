@@ -138,6 +138,7 @@ void loop(){
     if(millis() - lastSerialRecieved > rfHeartbeatTimeout){
       stopMotors();
       noTone(PIEZO);
+      //Rev 4
       digitalWrite(LED_R, HIGH);
       digitalWrite(LED_G, HIGH);
       digitalWrite(LED_B, LOW);
@@ -293,9 +294,9 @@ void loop(){
       // turn on/off RGB LED.
       // V,red_value,green_value,blue_value (0;OFF, 0< value <=100;ON)
       // V,100,0,100<CR|LF>
-      redValue = args[0] > 100 ? 100 : args[0];
-      greenValue = args[1] > 100 ? 100 : args[1];
-      blueValue = args[2] > 100 ? 100 : args[2];
+      redValue = args[0] >= 100 ? 100 : args[0];
+      greenValue = args[1] >= 100 ? 100 : args[1];
+      blueValue = args[2] >= 100 ? 100 : args[2];
       turnRgbLed(redValue, greenValue, blueValue);
       break;
   }
