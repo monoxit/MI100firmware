@@ -13,14 +13,13 @@
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
   Lesser General Public License for more details.
 
-Rev.7 2015     Add turn ON/OFF LED/Add move forward(R speed, L speed) G-R-R-R
 Rev.6 20140526 Fix speed control/git initial G-R-R-G
 Rev.5 20140524 Add startup motor test/Add speed control G-R-G-R
 Rev.4 20140325 Fix blue LED micros overrun  R-G-B-B-G-R
 Rev.3 20140121 Add photo sensor R-G-B-R-G-B
 */
 
-#define LED_R  14 // LOW:ON/HIGH:OFF
+#define LED_R  14
 #define LED_G  2
 #define LED_B  6
 
@@ -28,12 +27,12 @@ Rev.3 20140121 Add photo sensor R-G-B-R-G-B
 #define VCAP   0
 #define PHOTO  6
 
-#define M_AIN1  10  // Right motor forward rotation (HIGH:ON/LOW:OFF)
-#define M_AIN2  9   // Right motor backward rotation
-#define M_PWMA  13  // Right motor speed (0 - 1023)
-#define M_BIN1  11  // Left motor backward rotation
-#define M_BIN2  8   // Left motor forward rotation
-#define M_PWMB  3   // Left motor speed
+#define M_AIN1  10
+#define M_AIN2  9
+#define M_PWMA  13
+#define M_BIN1  11
+#define M_BIN2  8
+#define M_PWMB  3
 #define M_STBY  4
 
 PROGMEM const byte recieveBufferSize = 35;
@@ -49,7 +48,6 @@ PROGMEM const byte postFadeRatio = 5;
 PROGMEM const byte flatRatio = 10 - (preFadeRatio + postFadeRatio);
 PROGMEM const int maxMoveDuration = 1000; //mS
 PROGMEM const int maxTalkDuration = 3000; //mS
-PROGMEM const int maxMotorSpeed = 1023;
 
 PROGMEM const int analogUpdateRate = 50; //mS
 
@@ -94,7 +92,7 @@ void setup(){
   delay(200);
   blinkRgbLed(30,0,0,0,100,0); // R:1
   delay(200);
-  blinkRgbLed(30,0,0,0,100,0); // R:1
+  blinkRgbLed(0,30,0,0,100,0); // G:0
 
   //Motor test
   analogWrite(M_PWMA, 1023);
@@ -115,8 +113,9 @@ void setup(){
   digitalWrite(M_BIN1, HIGH);
   delay(10);
   stopMotors();
-}
 
+
+}
 
 void loop(){
   short res;
@@ -126,7 +125,6 @@ void loop(){
   unsigned int args[maxCommandArgc];
   byte i;
   int  duration;
-  int  rightMotorSpeed, leftMotorSpeed;
 
   analogUpdate();
 
@@ -216,7 +214,6 @@ void loop(){
       digitalWrite(M_BIN1, LOW);
       delay(duration);
       stopMotors();
-      res = light;
       break;
 
     case 'U':
@@ -232,7 +229,6 @@ void loop(){
       digitalWrite(M_BIN2, HIGH);
       delay(duration);
       stopMotors();
-      res = light;
       break;
 
     case 'F':
@@ -251,9 +247,6 @@ void loop(){
       break;
 
     case 'B':
-      // Move Backward
-      // B,duration(ms)
-      // B,500
       duration = args[0] > maxMoveDuration ? maxMoveDuration : args[0];
       analogWrite(M_PWMA, motorSpeed);
       analogWrite(M_PWMB, motorSpeed);
@@ -291,9 +284,9 @@ void loop(){
       break;
 
     case 'W':
-      // W,PWM value
+      // W,PWM value (< 1023)
       // W,500<CR|LF>
-      motorSpeed = args[0] > maxMotorSpeed ? maxMotorSpeed : args[0];
+      motorSpeed = args[0] > 1023 ? 1023 : args[0];
       break;
 
     case 'V':
@@ -305,33 +298,12 @@ void loop(){
       blueValue = args[2] > 100 ? 100 : args[2];
       turnRgbLed(redValue, greenValue, blueValue);
       break;
-
-    case 'Z':
-      // Move Forward(rightMotorSpeed, leftMotorSpeed)
-      // Z,rightMotorSpeed,leftMotorSpeed,duration(ms)
-      // Z,100,200,30
-      rightMotorSpeed = args[0] > maxMotorSpeed ? maxMotorSpeed : args[0];
-      leftMotorSpeed = args[1] > maxMotorSpeed ? maxMotorSpeed : args[1];
-      duration = args[2] > maxMoveDuration ? maxMoveDuration : args[2];
-      analogWrite(M_PWMA, rightMotorSpeed);
-      analogWrite(M_PWMB, leftMotorSpeed);
-      digitalWrite(M_AIN2, LOW);
-      digitalWrite(M_BIN1, LOW);
-      digitalWrite(M_AIN1, HIGH);
-      digitalWrite(M_BIN2, HIGH);
-      delay(duration);
-      stopMotors();
-      motorSpeed = rightMotorSpeed < leftMotorSpeed ? rightMotorSpeed : leftMotorSpeed;
-      res = light;
-      break;
   }
-
   lastSerialRecieved = millis();
   Serial.print(cmd);
   Serial.print(',');
   Serial.println(res);
 }
-
 
 void stopMotors(){
   digitalWrite(M_AIN1, LOW);
