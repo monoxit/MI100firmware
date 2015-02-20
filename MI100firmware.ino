@@ -13,6 +13,7 @@
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
   Lesser General Public License for more details.
 
+Rev.7 20150220 Add functions for line tracer
 Rev.6 20140526 Fix speed control/git initial G-R-R-G
 Rev.5 20140524 Add startup motor test/Add speed control G-R-G-R
 Rev.4 20140325 Fix blue LED micros overrun  R-G-B-B-G-R
@@ -92,7 +93,7 @@ void setup(){
   delay(200);
   blinkRgbLed(30,0,0,0,100,0); // R:1
   delay(200);
-  blinkRgbLed(0,30,0,0,100,0); // G:0
+  blinkRgbLed(30,0,0,0,100,0); // R:1
 
   //Motor test
   analogWrite(M_PWMA, 1023);
