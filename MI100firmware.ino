@@ -20,7 +20,7 @@ Rev.4 20140325 Fix blue LED micros overrun  R-G-B-B-G-R
 Rev.3 20140121 Add photo sensor R-G-B-R-G-B
 */
 
-#define LED_R  14 // LOW:ON/HIGH:OFF
+#define LED_R  14 // LOW:ON,HIGH:OFF
 #define LED_G  2
 #define LED_B  6
 
@@ -30,28 +30,28 @@ Rev.3 20140121 Add photo sensor R-G-B-R-G-B
 
 #define M_AIN1  10  // Right motor forward rotation (HIGH:ON/LOW:OFF)
 #define M_AIN2  9   // Right motor backward rotation
-#define M_PWMA  13  // Right motor speed (0 - 1023)
+#define M_PWMA  13  // Right motor speed (0 - 255)
 #define M_BIN1  11  // Left motor backward rotation
 #define M_BIN2  8   // Left motor forward rotation
 #define M_PWMB  3   // Left motor speed
 #define M_STBY  4
 
-PROGMEM const byte recieveBufferSize = 35;
-PROGMEM const byte maxCommandArgc = 4;
-PROGMEM const int factorN = 3; //Simple LPF
-PROGMEM const int vRef = 3300; //mV
-PROGMEM const int analogMax = 260; //Anode common LEDs are tured off by writing this value.
-PROGMEM const unsigned long spwmCycle = 25000; //micros
+PROGMEM const byte kRecieveBufferSize = 35;
+PROGMEM const byte kMaxCommandArgc = 4;
+PROGMEM const int kFactorN = 3; //Simple LPF
+PROGMEM const int kVRef = 3300; //mV
+PROGMEM const int kAnalogMax = 255; //Anode common LEDs are tured off by writing this value.
+PROGMEM const unsigned long kSpwmCycle = 25000; //micros
 PROGMEM const unsigned short rfHeartbeatTimeout = 6000; //mS
-PROGMEM const int readTimeout = 10000; //mS
-PROGMEM const byte preFadeRatio = 1;
-PROGMEM const byte postFadeRatio = 5;
-PROGMEM const byte flatRatio = 10 - (preFadeRatio + postFadeRatio);
-PROGMEM const int maxMoveDuration = 1000; //mS
-PROGMEM const int maxTalkDuration = 3000; //mS
-PROGMEM const int maxMotorSpeed = 1023;
+PROGMEM const int kReadTimeout = 10000; //mS
+PROGMEM const byte kPreFadeRatio = 1;
+PROGMEM const byte kPostFadeRatio = 5;
+PROGMEM const byte kFlatRatio = 10 - (kPreFadeRatio + kPostFadeRatio);
+PROGMEM const int kMaxMoveDuration = 1000; //mS
+PROGMEM const int kMaxTalkDuration = 3000; //mS
+PROGMEM const int kMaxMotorSpeed = 255;
 
-PROGMEM const int analogUpdateRate = 50; //mS
+PROGMEM const int kAnalogUpdateRate = 50; //mS
 
 short battery;
 short light;
@@ -77,7 +77,7 @@ void setup(){
   pinMode(M_STBY, OUTPUT);
   digitalWrite(M_STBY, HIGH);
 
-  battery = ((float)analogRead(VCAP) / 1024) * vRef;
+  battery = ((float)analogRead(VCAP) / 1024) * kVRef;
   light = analogRead(PHOTO);
   lastAnalogUpdate = millis();
 
@@ -120,10 +120,10 @@ void setup(){
 
 void loop(){
   short res;
-  char buf[recieveBufferSize];
+  char buf[kRecieveBufferSize];
   char cmd;
   char *tempStr;
-  unsigned int args[maxCommandArgc];
+  unsigned int args[kMaxCommandArgc];
   byte i;
   int  duration;
   int  rightMotorSpeed, leftMotorSpeed;
@@ -150,7 +150,7 @@ void loop(){
     return;
   }
 
-  if(!serialReadln(buf, sizeof(buf), readTimeout)) return;
+  if(!serialReadln(buf, sizeof(buf), kReadTimeout)) return;
 
   // Command Line Analysis
   cmd = buf[0];
@@ -177,7 +177,7 @@ void loop(){
       // Left Pivot
       // L,duration(ms)
       // L,500
-      duration = args[0] > maxMoveDuration ? maxMoveDuration : args[0];
+      duration = args[0] > kMaxMoveDuration ? kMaxMoveDuration : args[0];
       analogWrite(M_PWMA, motorSpeed);
       analogWrite(M_PWMB, motorSpeed);
       digitalWrite(M_AIN2, LOW);
@@ -192,7 +192,7 @@ void loop(){
       // Right Pivot
       // R,duration(ms)
       // R,500
-      duration = args[0] > maxMoveDuration ? maxMoveDuration : args[0];
+      duration = args[0] > kMaxMoveDuration ? kMaxMoveDuration : args[0];
       analogWrite(M_PWMA, motorSpeed);
       analogWrite(M_PWMB, motorSpeed);
       digitalWrite(M_AIN1, LOW);
@@ -207,7 +207,7 @@ void loop(){
       // Turn Left
       // A,duration(ms)
       // A,500
-      duration = args[0] > maxMoveDuration ? maxMoveDuration : args[0];
+      duration = args[0] > kMaxMoveDuration ? kMaxMoveDuration : args[0];
       analogWrite(M_PWMA, motorSpeed);
       analogWrite(M_PWMB, motorSpeed);
       digitalWrite(M_AIN2, LOW);
@@ -223,7 +223,7 @@ void loop(){
       // Turn Right
       // U,duration(ms)
       // U,500
-      duration = args[0] > maxMoveDuration ? maxMoveDuration : args[0];
+      duration = args[0] > kMaxMoveDuration ? kMaxMoveDuration : args[0];
       analogWrite(M_PWMA, motorSpeed);
       analogWrite(M_PWMB, motorSpeed);
       digitalWrite(M_AIN1, LOW);
@@ -239,7 +239,7 @@ void loop(){
       // Move Forward
       // F,duration(ms)
       // F,500
-      duration = args[0] > maxMoveDuration ? maxMoveDuration : args[0];
+      duration = args[0] > kMaxMoveDuration ? kMaxMoveDuration : args[0];
       analogWrite(M_PWMA, motorSpeed);
       analogWrite(M_PWMB, motorSpeed);
       digitalWrite(M_AIN2, LOW);
@@ -254,7 +254,7 @@ void loop(){
       // Move Backward
       // B,duration(ms)
       // B,500
-      duration = args[0] > maxMoveDuration ? maxMoveDuration : args[0];
+      duration = args[0] > kMaxMoveDuration ? kMaxMoveDuration : args[0];
       analogWrite(M_PWMA, motorSpeed);
       analogWrite(M_PWMB, motorSpeed);
       digitalWrite(M_AIN1, LOW);
@@ -277,15 +277,15 @@ void loop(){
       lastRedDuty = args[0];
       lastGreenDuty = args[1];
       lastBlueDuty = args[2];
-      duration = args[3] > maxTalkDuration ? maxTalkDuration : args[3];
-      blinkRgbLed(lastRedDuty, lastGreenDuty, lastBlueDuty, (duration * preFadeRatio) / 10, (duration * flatRatio) / 10, (duration * postFadeRatio) / 10);
+      duration = args[3] > kMaxTalkDuration ? kMaxTalkDuration : args[3];
+      blinkRgbLed(lastRedDuty, lastGreenDuty, lastBlueDuty, (duration * kPreFadeRatio) / 10, (duration * kFlatRatio) / 10, (duration * kPostFadeRatio) / 10);
       break;
 
     case 'T':
       // Beep PIEZO
       // T,tone(Hz),duration(ms)
       // T,440,200<CR|LF>
-      duration = args[1] > maxTalkDuration ? maxTalkDuration : args[1];
+      duration = args[1] > kMaxTalkDuration ? kMaxTalkDuration : args[1];
       noTone(PIEZO);
       tone(PIEZO, args[0], duration);
       break;
@@ -293,7 +293,7 @@ void loop(){
     case 'W':
       // W,PWM value
       // W,500<CR|LF>
-      motorSpeed = args[0] > maxMotorSpeed ? maxMotorSpeed : args[0];
+      motorSpeed = args[0] > kMaxMotorSpeed ? kMaxMotorSpeed : args[0];
       break;
 
     case 'V':
@@ -310,9 +310,9 @@ void loop(){
       // Move Forward(rightMotorSpeed, leftMotorSpeed)
       // Z,rightMotorSpeed,leftMotorSpeed,duration(ms)
       // Z,100,200,30
-      rightMotorSpeed = args[0] > maxMotorSpeed ? maxMotorSpeed : args[0];
-      leftMotorSpeed = args[1] > maxMotorSpeed ? maxMotorSpeed : args[1];
-      duration = args[2] > maxMoveDuration ? maxMoveDuration : args[2];
+      rightMotorSpeed = args[0] > kMaxMotorSpeed ? kMaxMotorSpeed : args[0];
+      leftMotorSpeed = args[1] > kMaxMotorSpeed ? kMaxMotorSpeed : args[1];
+      duration = args[2] > kMaxMoveDuration ? kMaxMoveDuration : args[2];
       analogWrite(M_PWMA, rightMotorSpeed);
       analogWrite(M_PWMB, leftMotorSpeed);
       digitalWrite(M_AIN2, LOW);
@@ -368,12 +368,12 @@ void blinkRgbLed(byte redDuty, byte greenDuty, byte blueDuty, unsigned short pre
   if(greenDuty > (byte)100)  greenDuty = 100;
   if(blueDuty > (byte)100)  blueDuty = 100;
 
-  reversedRedDuty = (analogMax * (100 - (unsigned long)redDuty)) / 100;
-  reversedGreenDuty = (analogMax * (100 - (unsigned long)greenDuty)) / 100;
+  reversedRedDuty = map(redDuty, 0, 100, kAnalogMax, 0);
+  reversedGreenDuty = map(greenDuty, 0, 100, kAnalogMax, 0);
   reversedBlueDuty = 100 - blueDuty;
 
-  redPerMilliSec = ((float)analogMax - (float)reversedRedDuty) / (float)preFadeTime;
-  greenPerMilliSec = ((float)analogMax - (float)reversedGreenDuty) / (float)preFadeTime;
+  redPerMilliSec = ((float)kAnalogMax - (float)reversedRedDuty) / (float)preFadeTime;
+  greenPerMilliSec = ((float)kAnalogMax - (float)reversedGreenDuty) / (float)preFadeTime;
   bluePerMilliSec = (float)blueDuty / (float)preFadeTime;
 
   startTime = millis();
@@ -396,8 +396,8 @@ void blinkRgbLed(byte redDuty, byte greenDuty, byte blueDuty, unsigned short pre
     spwmUpdate();
   }
 
-  redPerMilliSec = ((float)analogMax - (float)reversedRedDuty) / (float)postFadeTime;
-  greenPerMilliSec = ((float)analogMax - (float)reversedGreenDuty) / (float)postFadeTime;
+  redPerMilliSec = ((float)kAnalogMax - (float)reversedRedDuty) / (float)postFadeTime;
+  greenPerMilliSec = ((float)kAnalogMax - (float)reversedGreenDuty) / (float)postFadeTime;
   bluePerMilliSec = (float)blueDuty / (float)postFadeTime;
 
   startTime = millis();
@@ -419,11 +419,11 @@ void spwmUpdate(){
     spwmStartTime = spwmCurrentTime;
     if(spwmCycleState == 1){
       digitalWrite(spwmPin, HIGH);
-      spwmToggleTime = spwmStartTime + ((spwmDuty * spwmCycle) / 100);
+      spwmToggleTime = spwmStartTime + ((spwmDuty * kSpwmCycle) / 100);
       spwmCycleState = 0;
     }else{
       digitalWrite(spwmPin, LOW);
-      spwmToggleTime = spwmStartTime + (((100-spwmDuty) * spwmCycle) / 100);
+      spwmToggleTime = spwmStartTime + (((100-spwmDuty) * kSpwmCycle) / 100);
       spwmCycleState = 1;
     }
   }
@@ -433,14 +433,14 @@ void analogUpdate(){
   short vData, v;
   short lightData;
 
-  if(millis() < lastAnalogUpdate + analogUpdateRate) return;
+  if(millis() < lastAnalogUpdate + kAnalogUpdateRate) return;
 
   vData = analogRead(VCAP);
-  v = ((float)vData / 1024) * vRef;
-  battery = (battery * (factorN - 1) + v) / factorN;
+  v = ((float)vData / 1024) * kVRef;
+  battery = (battery * (kFactorN - 1) + v) / kFactorN;
 
   lightData = analogRead(PHOTO);
-  light = (light * (factorN - 1) + lightData) / factorN;
+  light = (light * (kFactorN - 1) + lightData) / kFactorN;
   lastAnalogUpdate = millis();
 }
 
