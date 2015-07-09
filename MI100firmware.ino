@@ -56,7 +56,7 @@ PROGMEM const int kAnalogUpdateRate = 50; //mS
 short battery;
 short light;
 
-int motorSpeed = 1023;
+int motorSpeed = kMaxMotorSpeed;
 
 unsigned long lastSerialRecieved = 0;
 unsigned long lastAnalogUpdate = 0;
@@ -97,8 +97,8 @@ void setup(){
   blinkRgbLed(30,0,0,0,100,0); // R:1
 
   //Motor test
-  analogWrite(M_PWMA, 1023);
-  analogWrite(M_PWMB, 1023);
+  analogWrite(M_PWMA, kMaxMotorSpeed);
+  analogWrite(M_PWMB, kMaxMotorSpeed);
   digitalWrite(M_AIN2, LOW);
   digitalWrite(M_BIN1, LOW);
   digitalWrite(M_AIN1, HIGH);
@@ -107,8 +107,8 @@ void setup(){
   stopMotors();
   delay(100);
 
-  analogWrite(M_PWMA, 1023);
-  analogWrite(M_PWMB, 1023);
+  analogWrite(M_PWMA, kMaxMotorSpeed);
+  analogWrite(M_PWMB, kMaxMotorSpeed);
   digitalWrite(M_AIN1, LOW);
   digitalWrite(M_BIN2, LOW);
   digitalWrite(M_AIN2, HIGH);
