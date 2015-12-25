@@ -13,12 +13,18 @@
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
   Lesser General Public License for more details.
 
+Rev.8 20151224 Add WS2812 support R-G-G-G
 Rev.7 2015     Add turn ON/OFF LED/Add move forward(R speed, L speed) G-R-R-R
 Rev.6 20140526 Fix speed control/git initial G-R-R-G
 Rev.5 20140524 Add startup motor test/Add speed control G-R-G-R
 Rev.4 20140325 Fix blue LED micros overrun  R-G-B-B-G-R
 Rev.3 20140121 Add photo sensor R-G-B-R-G-B
 */
+
+#include <WS2812.h>
+
+#define PIXEL_CNT 8
+#define PIXEL_PIN 15
 
 #define LED_R  14 // LOW:ON,HIGH:OFF
 #define LED_G  2
@@ -44,19 +50,19 @@ PROGMEM const int kAnalogMax = 255; //Anode common LEDs are tured off by writing
 PROGMEM const unsigned long kSpwmCycle = 25000; //micros
 PROGMEM const unsigned short rfHeartbeatTimeout = 6000; //mS
 PROGMEM const int kReadTimeout = 10000; //mS
-PROGMEM const byte kPreFadeRatio = 1;
-PROGMEM const byte kPostFadeRatio = 5;
+PROGMEM const byte kPreFadeRatio = 2;
+PROGMEM const byte kPostFadeRatio = 6;
 PROGMEM const byte kFlatRatio = 10 - (kPreFadeRatio + kPostFadeRatio);
-PROGMEM const int kMaxMoveDuration = 1000; //mS
-PROGMEM const int kMaxTalkDuration = 3000; //mS
-PROGMEM const int kMaxMotorSpeed = 255;
+PROGMEM const int kMaxMoveDuration = 5000; //mS
+PROGMEM const int kMaxTalkDuration = 10000; //mS
+PROGMEM const uint8_t kMaxMotorSpeed = 255;
 
 PROGMEM const int kAnalogUpdateRate = 50; //mS
 
 short battery;
 short light;
 
-int motorSpeed = kMaxMotorSpeed;
+uint8_t motorSpeed = kMaxMotorSpeed;
 
 unsigned long lastSerialRecieved = 0;
 unsigned long lastAnalogUpdate = 0;
@@ -65,6 +71,9 @@ byte spwmCycleState=1, spwmDuty, spwmPin;
 
 byte lastRedDuty=50, lastGreenDuty=50, lastBlueDuty=50;
 byte redValue=0, greenValue=0, blueValue=0;
+
+WS2812 PIXEL(PIXEL_CNT);
+cRGB pixelValue;
 
 void setup(){
   Serial.begin(9600);
@@ -75,7 +84,8 @@ void setup(){
   pinMode(M_BIN1, OUTPUT);
   pinMode(M_BIN2, OUTPUT);
   pinMode(M_STBY, OUTPUT);
-  digitalWrite(M_STBY, HIGH);
+  
+  PIXEL.setOutput(PIXEL_PIN);
 
   battery = ((float)analogRead(VCAP) / 1024) * kVRef;
   light = analogRead(PHOTO);
@@ -88,13 +98,13 @@ void setup(){
   tone(PIEZO, 880,100);
   delay(200);
 
+  blinkRgbLed(30,0,0,0,100,0); // R:1
+  delay(200);
   blinkRgbLed(0,30,0,0,100,0); // G:0
   delay(200);
-  blinkRgbLed(30,0,0,0,100,0); // R:1
+  blinkRgbLed(0,30,0,0,100,0); // G:0
   delay(200);
-  blinkRgbLed(30,0,0,0,100,0); // R:1
-  delay(200);
-  blinkRgbLed(30,0,0,0,100,0); // R:1
+  blinkRgbLed(0,30,0,0,100,0); // G:0
 
   //Motor test
   analogWrite(M_PWMA, kMaxMotorSpeed);
@@ -103,6 +113,7 @@ void setup(){
   digitalWrite(M_BIN1, LOW);
   digitalWrite(M_AIN1, HIGH);
   digitalWrite(M_BIN2, HIGH);
+  digitalWrite(M_STBY, HIGH);
   delay(10);
   stopMotors();
   delay(100);
@@ -113,6 +124,7 @@ void setup(){
   digitalWrite(M_BIN2, LOW);
   digitalWrite(M_AIN2, HIGH);
   digitalWrite(M_BIN1, HIGH);
+  digitalWrite(M_STBY, HIGH);
   delay(10);
   stopMotors();
 }
@@ -178,14 +190,7 @@ void loop(){
       // L,duration(ms)
       // L,500
       duration = args[0] > kMaxMoveDuration ? kMaxMoveDuration : args[0];
-      analogWrite(M_PWMA, motorSpeed);
-      analogWrite(M_PWMB, motorSpeed);
-      digitalWrite(M_AIN2, LOW);
-      digitalWrite(M_BIN2, LOW);
-      digitalWrite(M_AIN1, HIGH);
-      digitalWrite(M_BIN1, HIGH);
-      delay(duration);
-      stopMotors();
+      cycleMotors(HIGH, LOW, HIGH, LOW, motorSpeed, motorSpeed, duration);
       break;
 
      case 'R':
@@ -193,14 +198,7 @@ void loop(){
       // R,duration(ms)
       // R,500
       duration = args[0] > kMaxMoveDuration ? kMaxMoveDuration : args[0];
-      analogWrite(M_PWMA, motorSpeed);
-      analogWrite(M_PWMB, motorSpeed);
-      digitalWrite(M_AIN1, LOW);
-      digitalWrite(M_BIN1, LOW);
-      digitalWrite(M_AIN2, HIGH);
-      digitalWrite(M_BIN2, HIGH);
-      delay(duration);
-      stopMotors();
+      cycleMotors(LOW, HIGH, LOW, HIGH, motorSpeed, motorSpeed, duration);
       break;
 
     case 'A':
@@ -208,14 +206,7 @@ void loop(){
       // A,duration(ms)
       // A,500
       duration = args[0] > kMaxMoveDuration ? kMaxMoveDuration : args[0];
-      analogWrite(M_PWMA, motorSpeed);
-      analogWrite(M_PWMB, motorSpeed);
-      digitalWrite(M_AIN2, LOW);
-      digitalWrite(M_BIN2, LOW);
-      digitalWrite(M_AIN1, HIGH);
-      digitalWrite(M_BIN1, LOW);
-      delay(duration);
-      stopMotors();
+      cycleMotors(HIGH, LOW, LOW, LOW, motorSpeed, motorSpeed, duration);
       res = light;
       break;
 
@@ -224,14 +215,7 @@ void loop(){
       // U,duration(ms)
       // U,500
       duration = args[0] > kMaxMoveDuration ? kMaxMoveDuration : args[0];
-      analogWrite(M_PWMA, motorSpeed);
-      analogWrite(M_PWMB, motorSpeed);
-      digitalWrite(M_AIN1, LOW);
-      digitalWrite(M_BIN1, LOW);
-      digitalWrite(M_AIN2, LOW);
-      digitalWrite(M_BIN2, HIGH);
-      delay(duration);
-      stopMotors();
+      cycleMotors(LOW, LOW, LOW, HIGH, motorSpeed, motorSpeed, duration);
       res = light;
       break;
 
@@ -240,14 +224,7 @@ void loop(){
       // F,duration(ms)
       // F,500
       duration = args[0] > kMaxMoveDuration ? kMaxMoveDuration : args[0];
-      analogWrite(M_PWMA, motorSpeed);
-      analogWrite(M_PWMB, motorSpeed);
-      digitalWrite(M_AIN2, LOW);
-      digitalWrite(M_BIN1, LOW);
-      digitalWrite(M_AIN1, HIGH);
-      digitalWrite(M_BIN2, HIGH);
-      delay(duration);
-      stopMotors();
+      cycleMotors(HIGH, LOW, LOW, HIGH, motorSpeed, motorSpeed, duration);
       break;
 
     case 'B':
@@ -255,14 +232,7 @@ void loop(){
       // B,duration(ms)
       // B,500
       duration = args[0] > kMaxMoveDuration ? kMaxMoveDuration : args[0];
-      analogWrite(M_PWMA, motorSpeed);
-      analogWrite(M_PWMB, motorSpeed);
-      digitalWrite(M_AIN1, LOW);
-      digitalWrite(M_BIN2, LOW);
-      digitalWrite(M_AIN2, HIGH);
-      digitalWrite(M_BIN1, HIGH);
-      delay(duration);
-      stopMotors();
+      cycleMotors(LOW, HIGH, HIGH, LOW, motorSpeed, motorSpeed, duration);
       break;
 
     case 'S':
@@ -313,17 +283,24 @@ void loop(){
       rightMotorSpeed = args[0] > kMaxMotorSpeed ? kMaxMotorSpeed : args[0];
       leftMotorSpeed = args[1] > kMaxMotorSpeed ? kMaxMotorSpeed : args[1];
       duration = args[2] > kMaxMoveDuration ? kMaxMoveDuration : args[2];
-      analogWrite(M_PWMA, rightMotorSpeed);
-      analogWrite(M_PWMB, leftMotorSpeed);
-      digitalWrite(M_AIN2, LOW);
-      digitalWrite(M_BIN1, LOW);
-      digitalWrite(M_AIN1, HIGH);
-      digitalWrite(M_BIN2, HIGH);
-      delay(duration);
-      stopMotors();
+      cycleMotors(HIGH, LOW, LOW, HIGH, rightMotorSpeed, leftMotorSpeed, duration);
       motorSpeed = rightMotorSpeed < leftMotorSpeed ? rightMotorSpeed : leftMotorSpeed;
       res = light;
       break;
+    
+  case 'X':
+    // Set Pixel
+    // X,ix,r,g,b
+    pixelValue.r = args[1];
+    pixelValue.g = args[2];
+    pixelValue.b = args[3];
+    PIXEL.set_crgb_at(args[0], pixelValue);
+    break;
+  case 'Y':
+    // Sync Pixel
+    // Y
+    PIXEL.sync();
+    break;
   }
 
   lastSerialRecieved = millis();
@@ -332,12 +309,24 @@ void loop(){
   Serial.println(res);
 }
 
+void cycleMotors(uint8_t aIn1, uint8_t aIn2, uint8_t bIn1, uint8_t bIn2, uint8_t rMotorSpeed, uint8_t lMotorSpeed, uint16_t duration){
+  analogWrite(M_PWMA, rMotorSpeed);
+  analogWrite(M_PWMB, lMotorSpeed);
+  digitalWrite(M_AIN1, aIn1);
+  digitalWrite(M_AIN2, aIn2);
+  digitalWrite(M_BIN1, bIn1);
+  digitalWrite(M_BIN2, bIn2);
+  digitalWrite(M_STBY, HIGH);
+  delay(duration);
+  stopMotors();
+}
 
 void stopMotors(){
   digitalWrite(M_AIN1, LOW);
   digitalWrite(M_AIN2, LOW);
   digitalWrite(M_BIN1, LOW);
   digitalWrite(M_BIN2, LOW);
+  digitalWrite(M_STBY, LOW);
 }
 
 boolean serialReadln(char *buf, int bufSize, int timeout){
